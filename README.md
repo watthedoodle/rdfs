@@ -39,5 +39,5 @@ required global configuration:
 
 | Name          | Example value                        | Description                                |
 | ------------- | ------------------------------------ | ------------------------------------------ |
-| RDFS_ENDPOINT | https://master-node-ip:8080          | where the master node can be reached       |
+| RDFS_ENDPOINT | https://master-node-ip:8888          | where the master node can be reached       |
 | RDFS_TOKEN    | 7687a5ac-ed5a-4d69-8cc3-f78c119b3219 | the security token needed for this cluster |
