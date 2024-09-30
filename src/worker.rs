@@ -1,8 +1,9 @@
 use crate::config;
 use crate::config::Config;
 use axum::extract::State;
-use axum::routing::get;
+use axum::routing::{ get, post };
 use axum::Router;
+use axum::http::header::HeaderMap;
 use std::env;
 use std::{thread, time::Duration};
 
@@ -13,6 +14,7 @@ pub async fn init() {
     if let Some(config) = config::get() {
         let app = Router::new()
             .route("/", get(hello))
+            .route("/get-chunk", post(get_chunk))
             .with_state(config.clone());
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await.unwrap();
@@ -30,7 +32,8 @@ async fn hello(State(state): State<Config>) -> String {
     response.to_string()
 }
 
-async fn get_chunk(State(state): State<Config>) -> String {
+#[axum::debug_handler]
+async fn get_chunk(State(state): State<Config>, headers: HeaderMap) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
 }

@@ -73,3 +73,11 @@ Options:
   -V, --version  Print version
 
 ```
+
+## Test Harness
+
+Some of the local tests require us to call the worker or master http endpoints, we have a folder called `test-harness` that contains those tests. To run the test execute the following:
+
+```shell
+$ deno task test
+```
