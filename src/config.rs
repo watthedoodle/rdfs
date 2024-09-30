@@ -1,5 +1,6 @@
 use std::env;
 
+#[derive(Clone)]
 pub struct Config {
     pub endpoint: String,
     pub token: String,
