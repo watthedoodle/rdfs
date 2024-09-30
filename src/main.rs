@@ -54,7 +54,8 @@ enum Commands {
     },
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Arguments::parse();
 
     match &args.cmd {
@@ -73,7 +74,7 @@ fn main() {
                 master::init();
             }
             "worker" => {
-                worker::init();
+                let _ = worker::init().await;
             }
             _ => {
                 println!("illegal mode, please select option master or worker!");
