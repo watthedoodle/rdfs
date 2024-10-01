@@ -1,6 +1,6 @@
 # RDFS
 
-🔧 Rust Distributed File System (RDFS) a toy implementation of Google File System (GFS)
+🔧 Rust Distributed File System (RDFS) a toy implementation of the Google File System (GFS)
 
 ![alt Experimental](https://img.shields.io/badge/Type-Experimental-red.svg)
 ![alt Rust](https://img.shields.io/badge/Language-Rust-orange.svg)
@@ -21,7 +21,7 @@
 
 Reading the original paper ["The Google File System"](https://pdos.csail.mit.edu/6.824/papers/gfs.pdf)
 was the inspiration for HDFS _(Hadoop Distributed File System)_ that later gave way to Amazon's "S3" which has
-become almost "defacto" standard. Distributed file systems are super interesting and this project is
+become almost the "defacto" standard. Distributed file systems are super interesting and this project is
 an attempt to understand how distributed file systems work by building a toy version of the original GFS.
 
 ![img](GFS.png)
