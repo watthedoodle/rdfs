@@ -19,9 +19,10 @@ pub async fn init() {
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await.unwrap();
         let task = tokio::spawn(background_heartbeat(config));
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap()
+        });
         let _ = task.await;
-
-        axum::serve(listener, app).await.unwrap();
     } else {
         println!("==> Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
     }
@@ -54,6 +55,6 @@ async fn background_heartbeat(config: Config) {
             "==> simulating a heartbeat send! using token -> '{}'",
             config.token
         );
-        thread::sleep(Duration::from_millis(4000));
+        tokio::time::sleep(Duration::from_millis(4000)).await;
     }
 }
