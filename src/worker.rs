@@ -1,13 +1,16 @@
 use crate::config;
 use crate::config::Config;
+use axum::extract;
 use axum::extract::State;
-use axum::http::header::HeaderMap;
+use axum::http::StatusCode;
 use axum::middleware;
+use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
 use axum::Router;
-use std::env;
-use std::{thread, time::Duration};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
+use std::time::Duration;
 
 use crate::auth;
 
@@ -31,15 +34,15 @@ pub async fn init() {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct MetaChunk {
-    id: String
+    id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Chunk {
     id: String,
-    chunk: String
+    chunk: String,
 }
 
 async fn hello(State(state): State<Config>) -> String {
@@ -48,21 +51,36 @@ async fn hello(State(state): State<Config>) -> String {
 }
 
 #[axum::debug_handler]
-async fn get_chunk(State(state): State<Config>) -> String {
-    let response = format!("configurtion token -> '{}'", state.token);
-    response.to_string()
+async fn get_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response {
+    println!("==> get-chunk with ID [{}]", &payload.id);
+
+    if !Path::new(&payload.id).exists() {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+
+    if let Ok(chunk) = fs::read_to_string(&payload.id) {
+        return Json(Chunk {
+            id: payload.id,
+            chunk: chunk,
+        })
+        .into_response();
+    }
+    StatusCode::BAD_REQUEST.into_response()
 }
 
+#[axum::debug_handler]
 async fn store_chunk(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
 }
 
+#[axum::debug_handler]
 async fn delete_chunk(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
 }
 
+#[axum::debug_handler]
 async fn send_chunk(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
