@@ -7,6 +7,7 @@ use axum::middleware;
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
 use axum::Router;
+use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -53,19 +54,19 @@ async fn hello(State(state): State<Config>) -> String {
 #[axum::debug_handler]
 async fn get_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response {
     println!("==> get-chunk with ID [{}]", &payload.id);
-
+    // todo: we can use regex to make sure that the payload ID is legal e.g <INT>-<GUIDv43> format
     if !Path::new(&payload.id).exists() {
         return StatusCode::NOT_FOUND.into_response();
     }
 
-    if let Ok(chunk) = fs::read_to_string(&payload.id) {
+    if let Ok(chunk) = fs::read(&payload.id) {
         return Json(Chunk {
             id: payload.id,
-            chunk: chunk,
+            chunk: BASE64_STANDARD.encode(chunk),
         })
         .into_response();
     }
-    StatusCode::BAD_REQUEST.into_response()
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
 #[axum::debug_handler]
