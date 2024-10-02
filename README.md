@@ -74,6 +74,11 @@ Options:
 
 ```
 
+## Authentication
+
+For all the HTTP calls we need to pass the token as a custom header value i.e. `x-rdfs-token`. This
+will be checked using an authentication middleware in axum.
+
 ## Test Harness
 
 Some of the local tests require us to call the worker or master http endpoints, we have a folder called `test-harness` that contains those tests. To run the test execute the following:
