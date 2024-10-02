@@ -7,6 +7,7 @@ use axum::routing::{get, post};
 use axum::Router;
 use std::env;
 use std::{thread, time::Duration};
+use serde::Deserialize;
 
 use crate::auth;
 
@@ -30,11 +31,13 @@ pub async fn init() {
     }
 }
 
+#[derive(Deserialize)]
 struct MetaChunk {
     id: String
 }
 
-stuct Chunk {
+#[derive(Deserialize)]
+struct Chunk {
     id: String,
     chunk: String
 }
