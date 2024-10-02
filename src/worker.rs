@@ -30,13 +30,22 @@ pub async fn init() {
     }
 }
 
+struct MetaChunk {
+    id: String
+}
+
+stuct Chunk {
+    id: String,
+    chunk: String
+}
+
 async fn hello(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
 }
 
 #[axum::debug_handler]
-async fn get_chunk(State(state): State<Config>, headers: HeaderMap) -> String {
+async fn get_chunk(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
 }
@@ -47,6 +56,11 @@ async fn store_chunk(State(state): State<Config>) -> String {
 }
 
 async fn delete_chunk(State(state): State<Config>) -> String {
+    let response = format!("configurtion token -> '{}'", state.token);
+    response.to_string()
+}
+
+async fn send_chunk(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
 }

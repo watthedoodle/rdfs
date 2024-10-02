@@ -1,5 +1,10 @@
 import { assert, assertEquals } from "jsr:@std/assert";
 
+
+/* -------------------------------------------------------------------------------------------------
+WARNING: we are assuming that the worker node is already running, later on we may need
+some automations in order to spin up the worker node before running this test
+------------------------------------------------------------------------------------------------- */
 Deno.test("auth custom x-rdfs-token works", async () => {
   let _ = await fetch("http://localhost:8888/", {
     headers: {
