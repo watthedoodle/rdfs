@@ -1,19 +1,22 @@
 use axum::{
     extract::Request,
-    http::{StatusCode, HeaderMap},
+    http::{HeaderMap, StatusCode},
     middleware::{self, Next},
-    response::Response
+    response::Response,
 };
 
-crate::config;
+use crate::config;
 
-
-async pub fn authorise(headers: HeaderMap, request: Request, next: Next) -> Result<Response, StatusCode> {
+pub async fn authorise(
+    headers: HeaderMap,
+    request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
     if let Some(config) = config::get() {
         if let Some(token) = headers.get("x-rdfs-token") {
-            if token == config.token {
+            if *token == *config.token {
                 let response = next.run(request).await;
-                return Ok(response)
+                return Ok(response);
             }
         }
     }

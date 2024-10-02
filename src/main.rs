@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 
+mod auth;
 mod client;
 mod config;
 mod master;

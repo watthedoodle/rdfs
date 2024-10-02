@@ -1,11 +1,14 @@
 use crate::config;
 use crate::config::Config;
 use axum::extract::State;
-use axum::routing::{ get, post };
-use axum::Router;
 use axum::http::header::HeaderMap;
+use axum::middleware;
+use axum::routing::{get, post};
+use axum::Router;
 use std::env;
 use std::{thread, time::Duration};
+
+use crate::auth;
 
 pub async fn init() {
     println!("{}", crate::LOGO);
@@ -15,13 +18,12 @@ pub async fn init() {
         let app = Router::new()
             .route("/", get(hello))
             .route("/get-chunk", post(get_chunk))
+            .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await.unwrap();
         let task = tokio::spawn(background_heartbeat(config));
-        tokio::spawn(async move {
-            axum::serve(listener, app).await.unwrap()
-        });
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         let _ = task.await;
     } else {
         println!("==> Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
