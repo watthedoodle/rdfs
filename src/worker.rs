@@ -10,6 +10,7 @@ use axum::Router;
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
@@ -70,9 +71,20 @@ async fn get_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response
 }
 
 #[axum::debug_handler]
-async fn store_chunk(State(state): State<Config>) -> String {
-    let response = format!("configurtion token -> '{}'", state.token);
-    response.to_string()
+async fn store_chunk(extract::Json(payload): extract::Json<Chunk>) -> Response {
+    println!("==> store-chunk with ID [{}]", &payload.id);
+
+    if let Ok(mut file) = fs::File::create(&payload.id) {
+        if let Ok(chunk) = BASE64_STANDARD.decode(&payload.chunk) {
+            if let Ok(_) = file.write(&chunk) {
+                return Json(MetaChunk {
+                    id: payload.id.to_string(),
+                })
+                .into_response();
+            }
+        }
+    }
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
 #[axum::debug_handler]
