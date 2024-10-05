@@ -88,9 +88,11 @@ async fn store_chunk(extract::Json(payload): extract::Json<Chunk>) -> Response {
 }
 
 #[axum::debug_handler]
-async fn delete_chunk(State(state): State<Config>) -> String {
-    let response = format!("configurtion token -> '{}'", state.token);
-    response.to_string()
+async fn delete_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response {
+    println!("==> delete-chunk with ID [{}]", &payload.id);
+    
+
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
 #[axum::debug_handler]
