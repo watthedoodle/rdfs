@@ -1,5 +1,6 @@
 {
   "tasks": {
-    "test": "deno test --allow-all test.js"
+    "test": "deno test --allow-all test.js",
+    "send": "deno test --allow-all send.js"
   }
 }
