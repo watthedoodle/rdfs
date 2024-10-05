@@ -50,6 +50,12 @@ struct Chunk {
     chunk: String,
 }
 
+#[derive(Deserialize, Serialize)]
+struct SendChunk {
+    id: String,
+    target: String,
+}
+
 async fn hello(State(state): State<Config>) -> String {
     let response = format!("configurtion token -> '{}'", state.token);
     response.to_string()
