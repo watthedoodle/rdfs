@@ -10,6 +10,7 @@ use axum::Router;
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::fs::remove_file;
 use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
@@ -24,6 +25,7 @@ pub async fn init() {
         let app = Router::new()
             .route("/", get(hello))
             .route("/get-chunk", post(get_chunk))
+            .route("/store-chunk", post(store_chunk))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
@@ -90,7 +92,10 @@ async fn store_chunk(extract::Json(payload): extract::Json<Chunk>) -> Response {
 #[axum::debug_handler]
 async fn delete_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response {
     println!("==> delete-chunk with ID [{}]", &payload.id);
-    
+
+    if let Ok(_) = remove_file(&payload.id) {
+        return Json(MetaChunk { id: payload.id }).into_response();
+    }
 
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
