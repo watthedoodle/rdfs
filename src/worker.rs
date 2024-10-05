@@ -27,6 +27,7 @@ pub async fn init() {
             .route("/get-chunk", post(get_chunk))
             .route("/store-chunk", post(store_chunk))
             .route("/delete-chunk", post(delete_chunk))
+            .route("/send-chunk", post(send_chunk))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
@@ -108,9 +109,34 @@ async fn delete_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Respo
 }
 
 #[axum::debug_handler]
-async fn send_chunk(State(state): State<Config>) -> String {
-    let response = format!("configurtion token -> '{}'", state.token);
-    response.to_string()
+async fn send_chunk(
+    State(state): State<Config>,
+    extract::Json(payload): extract::Json<SendChunk>,
+) -> Response {
+    println!("==> send-chunk [{}] to -> {}", &payload.id, &payload.target);
+
+    if !Path::new(&payload.id).exists() {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+
+    if let Ok(chunk) = fs::read(&payload.id) {
+        let data = Chunk {
+            id: payload.id.clone(),
+            chunk: BASE64_STANDARD.encode(chunk),
+        };
+        match ureq::post(&payload.target)
+            .set("x-rdfs-token", &state.token)
+            .send_json(data)
+        {
+            Ok(_) => {
+                return Json(MetaChunk { id: payload.id }).into_response();
+            }
+            _ => {
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        }
+    }
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
 async fn background_heartbeat(config: Config) {
