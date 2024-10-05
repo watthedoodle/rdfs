@@ -52,6 +52,8 @@ enum Commands {
     Mode {
         /// kind: allowed values are "master" or "worker"
         kind: String,
+        /// port: a custom port. default is 8888
+        port: Option<String>,
     },
 }
 
@@ -70,12 +72,16 @@ async fn main() {
             client::add(&file);
         }
         Some(Commands::Remove { file }) => client::remove(&file),
-        Some(Commands::Mode { kind }) => match kind.as_ref() {
+        Some(Commands::Mode { kind, port }) => match kind.as_ref() {
             "master" => {
                 master::init();
             }
             "worker" => {
-                let _ = worker::init().await;
+                let default_port = match port.as_ref() {
+                    Some(p) => p,
+                    None => "8888",
+                };
+                let _ = worker::init(default_port).await;
             }
             _ => {
                 println!("illegal mode, please select option master or worker!");

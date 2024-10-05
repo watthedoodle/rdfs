@@ -17,9 +17,9 @@ use std::time::Duration;
 
 use crate::auth;
 
-pub async fn init() {
+pub async fn init(port: &str) {
     println!("{}", crate::LOGO);
-    println!("==> launching node in [worker] mode...");
+    println!("==> launching node in [worker] mode on port {}...", port);
 
     if let Some(config) = config::get() {
         let app = Router::new()
@@ -31,7 +31,9 @@ pub async fn init() {
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await.unwrap();
+        let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+            .await
+            .unwrap();
         let task = tokio::spawn(background_heartbeat(config));
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         let _ = task.await;
