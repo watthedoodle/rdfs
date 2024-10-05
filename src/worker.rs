@@ -26,6 +26,7 @@ pub async fn init() {
             .route("/", get(hello))
             .route("/get-chunk", post(get_chunk))
             .route("/store-chunk", post(store_chunk))
+            .route("/delete-chunk", post(delete_chunk))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 

@@ -59,3 +59,18 @@ Deno.test("can call store-chunk with chunk data", async () => {
       assertEquals(data.status, 200);
     });
 });
+
+Deno.test("can call delete-chunk", async () => {
+  let _ = await fetch("http://localhost:8888/store-chunk", {
+    method: "POST",
+    headers: {
+      "x-rdfs-token": Token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ "id": "test.txt" }),
+  }).then((x) => x.text().then((data) => ({ status: x.status, body: data })))
+    .then((data) => {
+      console.log(data.body);
+      assertEquals(data.status, 200);
+    });
+});
