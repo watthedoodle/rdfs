@@ -1,0 +1,16 @@
+services:
+  master:
+    image: rdfs
+    build:
+      context: .
+      args:
+        DOCKER_BUILDKIT: 1
+    ports:
+      - 8888:8888
+    env_file: .env.docker
+    command: mode master
+
+  worker:
+    image: rdfs
+    env_file: .env.docker
+    command: mode worker
