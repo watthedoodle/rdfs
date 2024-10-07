@@ -142,11 +142,9 @@ async fn send_chunk(
 }
 
 async fn background_heartbeat(config: Config) {
+    println!("==> initiating the background heartbeat...")
     loop {
-        println!(
-            "==> simulating a heartbeat send! using token -> '{}'",
-            config.token
-        );
+        // TODO
         tokio::time::sleep(Duration::from_millis(4000)).await;
     }
 }

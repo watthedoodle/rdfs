@@ -13,7 +13,7 @@ pub async fn init(port: &i16) {
 
     if let Some(config) = config::get() {
         let app = Router::new()
-            .route("/", get(hello))
+            .route("/", get(heartbeat))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
@@ -28,7 +28,7 @@ pub async fn init(port: &i16) {
     }
 }
 
-async fn hello(State(state): State<Config>) -> String {
-    let response = format!("configurtion token -> '{}'", state.token);
-    response.to_string()
+async fn heartbeat() -> String {
+    println!("==> got a heartbeat from worker node -> ...");
+    "ok".to_string()
 }
