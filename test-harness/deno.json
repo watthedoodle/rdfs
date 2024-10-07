@@ -1,6 +1,10 @@
 {
   "tasks": {
-    "test": "deno test --allow-all test.js",
-    "send": "deno test --allow-all send.js"
+    "test-token": "deno test --allow-all --filter 'token'",
+    "test-get": "deno test --allow-all --filter 'get-chunk-ok'",
+    "test-store": "deno test --allow-all --filter 'store-chunk'",
+    "test-delete": "deno test --allow-all --filter 'delete-chunk'",
+    "test-send": "deno test --allow-all --filter 'send-chunk'",
+    "test": "deno test --allow-all test.js"
   }
 }

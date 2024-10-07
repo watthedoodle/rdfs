@@ -14,6 +14,7 @@ use std::fs::remove_file;
 use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
+use tokio::task::spawn_blocking;
 
 use crate::auth;
 
@@ -34,9 +35,9 @@ pub async fn init(port: &i16) {
         let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
             .await
             .unwrap();
-        let task = tokio::spawn(background_heartbeat(config));
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-        let _ = task.await;
+
+        let task = tokio::task::spawn_blocking(move || background_heartbeat(config)).await;
     } else {
         println!("==> Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
     }
@@ -141,7 +142,7 @@ async fn send_chunk(
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
-async fn background_heartbeat(config: Config) {
+fn background_heartbeat(config: Config) {
     println!("==> initiating the background heartbeat...");
     loop {
         // TODO: later on we could sent worker node meta information e.g disk space
@@ -150,6 +151,6 @@ async fn background_heartbeat(config: Config) {
             .set("x-rdfs-token", &config.token)
             .call();
         // println!("{:?}", x);
-        tokio::time::sleep(Duration::from_millis(4000)).await;
+        std::thread::sleep(Duration::from_millis(4000));
     }
 }

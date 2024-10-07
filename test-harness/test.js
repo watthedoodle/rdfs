@@ -6,7 +6,7 @@ some automations in order to spin up the worker node before running this test
 ------------------------------------------------------------------------------------------------- */
 const Token = "695bfaf2-f381-470b-945c-6cb11fa7a73c";
 
-Deno.test("auth custom x-rdfs-token works", async () => {
+Deno.test("x-rdfs-token", async () => {
   let _ = await fetch("http://localhost:8888/", {
     headers: {
       "x-rdfs-token": Token,
@@ -15,7 +15,7 @@ Deno.test("auth custom x-rdfs-token works", async () => {
     .then((data) => assertEquals(data.status, 200));
 });
 
-Deno.test("can call get-chunk and get 404 on non existent chunk", async () => {
+Deno.test("get-chunk-404", async () => {
   let _ = await fetch("http://localhost:8888/get-chunk", {
     method: "POST",
     headers: {
@@ -30,7 +30,7 @@ Deno.test("can call get-chunk and get 404 on non existent chunk", async () => {
     });
 });
 
-Deno.test("can call get-chunk and get back data", async () => {
+Deno.test("get-chunk-ok", async () => {
   let _ = await fetch("http://localhost:8888/get-chunk", {
     method: "POST",
     headers: {
@@ -40,12 +40,12 @@ Deno.test("can call get-chunk and get back data", async () => {
     body: JSON.stringify({ "id": "README.md" }),
   }).then((x) => x.text().then((data) => ({ status: x.status, body: data })))
     .then((data) => {
-      // console.log(data.body);
+      console.log(data.body);
       assertEquals(data.status, 200);
     });
 });
 
-Deno.test("can call store-chunk with chunk data", async () => {
+Deno.test("store-chunk", async () => {
   let _ = await fetch("http://localhost:8888/store-chunk", {
     method: "POST",
     headers: {
@@ -58,12 +58,12 @@ Deno.test("can call store-chunk with chunk data", async () => {
     }),
   }).then((x) => x.text().then((data) => ({ status: x.status, body: data })))
     .then((data) => {
-      // console.log(data.body);
+      console.log(data.body);
       assertEquals(data.status, 200);
     });
 });
 
-Deno.test("can call delete-chunk", async () => {
+Deno.test("delete-chunk", async () => {
   let _ = await fetch("http://localhost:8888/delete-chunk", {
     method: "POST",
     headers: {
@@ -74,6 +74,21 @@ Deno.test("can call delete-chunk", async () => {
   }).then((x) => x.text().then((data) => ({ status: x.status, body: data })))
     .then((data) => {
       // console.log(data.body);
+      assertEquals(data.status, 200);
+    });
+});
+
+Deno.test("send-chunk", async () => {
+  let _ = await fetch("http://localhost:8888/send-chunk", {
+    method: "POST",
+    headers: {
+      "x-rdfs-token": Token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ "id": "README.md", "target": "http://localhost:9999" }),
+  }).then((x) => x.text().then((data) => ({ status: x.status, body: data })))
+    .then((data) => {
+      console.log(data.body);
       assertEquals(data.status, 200);
     });
 });
