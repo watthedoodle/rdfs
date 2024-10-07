@@ -6,7 +6,7 @@
 ![alt Rust](https://img.shields.io/badge/Language-Rust-orange.svg)
 ![alt Binary](https://img.shields.io/badge/Binary-Polymorphic-green.svg)
 
-```console
+```shell
 
 ██████  ██████  ███████ ███████
 ██   ██ ██   ██ ██      ██
@@ -85,4 +85,74 @@ Some of the local tests require us to call the worker or master http endpoints, 
 
 ```shell
 $ deno task test
+```
+
+## Simulating a cluster using docker
+
+In order to test our distributed cluster, instead of spinning up lots of heavy Virtual Machines, instead we can "simulate" it using lightweight containers.
+
+First we will need to build our container images via the following commnand:
+
+```shell
+$ docker compose build
+```
+
+This will take some time but eventually once it completes we should have a custom docker image, we can check by doing the following:
+
+```shell
+$ docker images
+
+REPOSITORY                                             TAG                 IMAGE ID       CREATED          SIZE
+rdfs                                                   latest              e9d6e2275c17   35 minutes ago   13.2MB
+```
+
+now we can spin up our inital "cluster" with only 1 master node and 1 worker node:
+
+```shell
+$ docker compose up -d
+
+[+] Running 3/3
+ ✔ Network rdfs_default     Created                                                                                 0.1s
+ ✔ Container rdfs-master-1  Started                                                                                 0.4s
+ ✔ Container rdfs-worker-1  Started                                                                                 0.3s
+```
+
+Now we can _scale_ the number of worker node simply by using the `scale` command, for example if we wanted to scale up to have 3 worker nodes:
+
+```shell
+$ docker compose scale worker=3
+
+[+] Running 3/3
+ ✔ Container rdfs-worker-1  Running                                                                                 0.0s
+ ✔ Container rdfs-worker-3  Started                                                                                 0.6s
+ ✔ Container rdfs-worker-2  Started                                                                                 0.3s
+```
+
+If we wish to check out the logs we can do this by using the container names e.g:
+
+```shell
+$ docker logs -f rdfs-master-1
+
+██████  ██████  ███████ ███████
+██   ██ ██   ██ ██      ██
+██████  ██   ██ █████   ███████
+██   ██ ██   ██ ██           ██
+██   ██ ██████  ██      ███████
+
+ a toy distributed file system
+
+==> launching node in [master] mode on port 8888...
+==> got a heartbeat from worker node -> ...172.18.0.3:43640
+```
+
+Finally we can "tear down" our cluster simply by doing the following:
+
+```shell
+$ docker compose down
+[+] Running 5/5
+ ✔ Container rdfs-master-1  Removed                                                                                10.3s
+ ✔ Container rdfs-worker-1  Removed                                                                                10.3s
+ ✔ Container rdfs-worker-2  Removed                                                                                10.2s
+ ✔ Container rdfs-worker-3  Removed                                                                                10.3s
+ ✔ Network rdfs_default     Removed                                                                                 0.1s
 ```
