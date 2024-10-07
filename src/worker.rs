@@ -145,9 +145,10 @@ async fn background_heartbeat(config: Config) {
     println!("==> initiating the background heartbeat...");
     loop {
         // TODO
-        let _ = ureq::post(&format!("{}/heartbeat", config.endpoint))
+        let x = ureq::post(&format!("{}/heartbeat", config.endpoint))
             .set("x-rdfs-token", &config.token)
             .call();
+        println!("{:?}", x);
         tokio::time::sleep(Duration::from_millis(4000)).await;
     }
 }

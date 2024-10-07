@@ -4,7 +4,7 @@ use crate::config::Config;
 use axum::extract::ConnectInfo;
 use axum::extract::State;
 use axum::middleware;
-use axum::routing::{ get, post };
+use axum::routing::{get, post};
 use axum::Router;
 use std::net::SocketAddr;
 use std::{thread, time::Duration};
@@ -15,7 +15,7 @@ pub async fn init(port: &i16) {
 
     if let Some(config) = config::get() {
         let app = Router::new()
-            .route("/", post(heartbeat))
+            .route("/heartbeat", post(heartbeat))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
@@ -23,15 +23,21 @@ pub async fn init(port: &i16) {
             .await
             .unwrap();
         // let task = tokio::spawn(background_heartbeat(config));
-        tokio::spawn(async move {
-            axum::serve(
-                listener,
-                app.into_make_service_with_connect_info::<SocketAddr>(),
-            )
-            .await
-            .unwrap()
-        });
+        // tokio::spawn(async move {
+        //     axum::serve(
+        //         listener,
+        //         app.into_make_service_with_connect_info::<SocketAddr>(),
+        //     )
+        //     .await
+        //     .unwrap()
+        // });
         // let _ = task.await;
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .unwrap()
     } else {
         println!("==> Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
     }
