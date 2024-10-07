@@ -144,11 +144,12 @@ async fn send_chunk(
 async fn background_heartbeat(config: Config) {
     println!("==> initiating the background heartbeat...");
     loop {
-        // TODO
+        // TODO: later on we could sent worker node meta information e.g disk space
+        // to the master node.
         let x = ureq::post(&format!("{}/heartbeat", config.endpoint))
             .set("x-rdfs-token", &config.token)
             .call();
-        println!("{:?}", x);
+        // println!("{:?}", x);
         tokio::time::sleep(Duration::from_millis(4000)).await;
     }
 }
