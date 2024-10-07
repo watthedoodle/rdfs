@@ -53,7 +53,7 @@ enum Commands {
         /// kind: allowed values are "master" or "worker"
         kind: String,
         /// port: a custom port. default is 8888
-        port: Option<String>,
+        port: Option<i16>,
     },
 }
 
@@ -74,12 +74,16 @@ async fn main() {
         Some(Commands::Remove { file }) => client::remove(&file),
         Some(Commands::Mode { kind, port }) => match kind.as_ref() {
             "master" => {
-                master::init();
+                let default_port = match port {
+                    Some(p) => p,
+                    None => &8888,
+                };
+                let _ = master::init(default_port).await;
             }
             "worker" => {
-                let default_port = match port.as_ref() {
+                let default_port = match port {
                     Some(p) => p,
-                    None => "8888",
+                    None => &8888,
                 };
                 let _ = worker::init(default_port).await;
             }

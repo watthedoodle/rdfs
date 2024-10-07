@@ -17,7 +17,7 @@ use std::time::Duration;
 
 use crate::auth;
 
-pub async fn init(port: &str) {
+pub async fn init(port: &i16) {
     println!("{}", crate::LOGO);
     println!("==> launching node in [worker] mode on port {}...", port);
 
