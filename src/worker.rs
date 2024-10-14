@@ -14,13 +14,13 @@ use std::fs::remove_file;
 use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
-use tokio::task::spawn_blocking;
+use tracing::{error, info};
 
 use crate::auth;
 
 pub async fn init(port: &i16) {
     println!("{}", crate::LOGO);
-    println!("==> launching node in [worker] mode on port {}...", port);
+    info!("launching node in [worker] mode on port {}...", port);
 
     if let Some(config) = config::get() {
         let app = Router::new()
@@ -39,7 +39,7 @@ pub async fn init(port: &i16) {
 
         let task = tokio::task::spawn_blocking(move || background_heartbeat(config)).await;
     } else {
-        println!("==> Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
+        error!("unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
     }
 }
 
@@ -67,7 +67,7 @@ async fn hello(State(state): State<Config>) -> String {
 
 #[axum::debug_handler]
 async fn get_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response {
-    println!("==> get-chunk with ID [{}]", &payload.id);
+    info!("get-chunk with ID [{}]", &payload.id);
     // todo: we can use regex to make sure that the payload ID is legal e.g <INT>-<GUIDv43> format
     if !Path::new(&payload.id).exists() {
         return StatusCode::NOT_FOUND.into_response();
@@ -85,7 +85,7 @@ async fn get_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response
 
 #[axum::debug_handler]
 async fn store_chunk(extract::Json(payload): extract::Json<Chunk>) -> Response {
-    println!("==> store-chunk with ID [{}]", &payload.id);
+    info!("store-chunk with ID [{}]", &payload.id);
 
     if let Ok(mut file) = fs::File::create(&payload.id) {
         if let Ok(chunk) = BASE64_STANDARD.decode(&payload.chunk) {
@@ -102,7 +102,7 @@ async fn store_chunk(extract::Json(payload): extract::Json<Chunk>) -> Response {
 
 #[axum::debug_handler]
 async fn delete_chunk(extract::Json(payload): extract::Json<MetaChunk>) -> Response {
-    println!("==> delete-chunk with ID [{}]", &payload.id);
+    info!("delete-chunk with ID [{}]", &payload.id);
 
     if let Ok(_) = remove_file(&payload.id) {
         return Json(MetaChunk { id: payload.id }).into_response();
@@ -116,7 +116,7 @@ async fn send_chunk(
     State(state): State<Config>,
     extract::Json(payload): extract::Json<SendChunk>,
 ) -> Response {
-    println!("==> send-chunk [{}] to -> {}", &payload.id, &payload.target);
+    info!("send-chunk [{}] to -> {}", &payload.id, &payload.target);
 
     if !Path::new(&payload.id).exists() {
         return StatusCode::NOT_FOUND.into_response();
@@ -143,14 +143,13 @@ async fn send_chunk(
 }
 
 fn background_heartbeat(config: Config) {
-    println!("==> initiating the background heartbeat...");
+    info!("initiating the background heartbeat...");
     loop {
         // TODO: later on we could sent worker node meta information e.g disk space
         // to the master node.
         let x = ureq::post(&format!("{}/heartbeat", config.endpoint))
             .set("x-rdfs-token", &config.token)
             .call();
-        // println!("{:?}", x);
         std::thread::sleep(Duration::from_millis(4000));
     }
 }

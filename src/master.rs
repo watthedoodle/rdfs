@@ -8,10 +8,11 @@ use axum::routing::{get, post};
 use axum::Router;
 use std::net::SocketAddr;
 use std::{thread, time::Duration};
+use tracing::{error, info};
 
 pub async fn init(port: &i16) {
     println!("{}", crate::LOGO);
-    println!("==> launching node in [master] mode on port {}...", port);
+    info!("launching node in [master] mode on port {}...", port);
 
     if let Some(config) = config::get() {
         let app = Router::new()
@@ -39,11 +40,11 @@ pub async fn init(port: &i16) {
         .await
         .unwrap()
     } else {
-        println!("==> Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
+        error!("Error: unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
     }
 }
 
 async fn heartbeat(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
-    println!("==> got a heartbeat from worker node -> ...{}", addr);
+    info!("got a heartbeat from worker node -> ...{}", addr);
     "ok".to_string()
 }

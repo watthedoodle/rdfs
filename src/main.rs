@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use tracing::warn;
 
 mod auth;
 mod client;
@@ -59,6 +60,7 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
     let args = Arguments::parse();
 
     match &args.cmd {
@@ -88,11 +90,11 @@ async fn main() {
                 let _ = worker::init(default_port).await;
             }
             _ => {
-                println!("illegal mode, please select option master or worker!");
+                warn!("illegal mode, please select option master or worker!");
             }
         },
         None => {
-            println!("Unknown command!");
+            warn!("Unknown command!");
         }
     }
 }
