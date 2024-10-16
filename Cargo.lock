@@ -571,6 +571,7 @@ dependencies = [
  "axum",
  "base64",
  "clap",
+ "lazy_static",
  "serde",
  "serde_json",
  "tokio",
