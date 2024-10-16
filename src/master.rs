@@ -39,6 +39,7 @@ lazy_static! {
 
 pub async fn init(port: &i16) {
     println!("{}", crate::LOGO);
+    self::load_snapshot();
     info!("launching node in [master] mode on port {}...", port);
 
     if let Some(config) = config::get() {
@@ -99,4 +100,14 @@ async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
 async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     info!("remove file with name [{}]", &payload.name);
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
+}
+
+
+fn load_snapshot() {
+    /* ---------------------------------------------------------------------------------------------
+    attempt to load from snapshot from disk into memory, we will need to also do 
+    compaction and then re-save the compacted snapshot back to disk.
+    This will then allow the change events to be appended while the process is running.
+    ---------------------------------------------------------------------------------------------- */
+    info!("attempting to load snapshot...");
 }
