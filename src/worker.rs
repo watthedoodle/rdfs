@@ -37,7 +37,7 @@ pub async fn init(port: &i16) {
             .unwrap();
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
 
-        let task = tokio::task::spawn_blocking(move || background_heartbeat(config)).await;
+        let _ = tokio::task::spawn_blocking(move || background_heartbeat(config)).await;
     } else {
         error!("unable able to load the valid cluster configuration. Please make sure the ENV 'RDFS_ENDPOINT' and 'RDFS_TOKEN' are set");
     }
@@ -147,7 +147,7 @@ fn background_heartbeat(config: Config) {
     loop {
         // TODO: later on we could sent worker node meta information e.g disk space
         // to the master node.
-        let x = ureq::post(&format!("{}/heartbeat", config.endpoint))
+        let _ = ureq::post(&format!("{}/heartbeat", config.endpoint))
             .set("x-rdfs-token", &config.token)
             .call();
         std::thread::sleep(Duration::from_millis(4000));

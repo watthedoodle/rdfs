@@ -1,13 +1,15 @@
 use crate::auth;
 use crate::config;
-use crate::config::Config;
+use axum::extract;
 use axum::extract::ConnectInfo;
-use axum::extract::State;
+use axum::http::StatusCode;
 use axum::middleware;
-use axum::routing::{get, post};
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::routing::post;
 use axum::Router;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use std::{thread, time::Duration};
 use tracing::{error, info};
 
 pub async fn init(port: &i16) {
@@ -17,22 +19,17 @@ pub async fn init(port: &i16) {
     if let Some(config) = config::get() {
         let app = Router::new()
             .route("/heartbeat", post(heartbeat))
+            .route("/list", post(list))
+            .route("/get", post(get))
+            .route("/upload", post(upload))
+            .route("/remove", post(remove))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
         let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
             .await
             .unwrap();
-        // let task = tokio::spawn(background_heartbeat(config));
-        // tokio::spawn(async move {
-        //     axum::serve(
-        //         listener,
-        //         app.into_make_service_with_connect_info::<SocketAddr>(),
-        //     )
-        //     .await
-        //     .unwrap()
-        // });
-        // let _ = task.await;
+
         axum::serve(
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -47,4 +44,34 @@ pub async fn init(port: &i16) {
 async fn heartbeat(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
     info!("got a heartbeat from worker node -> ...{}", addr);
     "ok".to_string()
+}
+
+#[derive(Deserialize, Serialize)]
+struct FileMeta {
+    name: String,
+    size: Option<u64>,
+}
+
+#[axum::debug_handler]
+async fn list() -> Response {
+    info!("list all files");
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+}
+
+#[axum::debug_handler]
+async fn get(extract::Json(payload): extract::Json<FileMeta>) -> Response {
+    info!("get file with name [{}]", &payload.name);
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+}
+
+#[axum::debug_handler]
+async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
+    info!("upload file with name [{}]", &payload.name);
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+}
+
+#[axum::debug_handler]
+async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
+    info!("remove file with name [{}]", &payload.name);
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
