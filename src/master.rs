@@ -9,6 +9,7 @@ use axum::routing::post;
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
+use std::sync::Mutex;
 use tracing::{error, info};
 
 #[derive(Deserialize, Serialize)]
@@ -16,20 +17,24 @@ struct MetaStore {
     file_name: String,
     hash: String,
     chunk_id: i32,
-    hosts: Vec<Host>
+    hosts: Vec<Host>,
 }
 
 #[derive(Deserialize, Serialize)]
 enum Status {
     Unknown,
     Healthy,
-    Dead
+    Dead,
 }
 
 #[derive(Deserialize, Serialize)]
 struct Host {
     ip: String,
-    status: Status
+    status: Status,
+}
+
+lazy_static! {
+    static ref METASTATE: Mutex<Vec<MetaStore>> = Mutex::new(vec![]);
 }
 
 pub async fn init(port: &i16) {

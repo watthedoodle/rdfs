@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 use tracing::warn;
+#[macro_use]
+extern crate lazy_static;
 
 mod auth;
 mod client;
