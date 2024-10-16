@@ -16,7 +16,20 @@ struct MetaStore {
     file_name: String,
     hash: String,
     chunk_id: i32,
-    hosts: Vec<String>
+    hosts: Vec<Host>
+}
+
+#[derive(Deserialize, Serialize)]
+enum Status {
+    Unknown,
+    Healthy,
+    Dead
+}
+
+#[derive(Deserialize, Serialize)]
+struct Host {
+    ip: String,
+    status: Status
 }
 
 pub async fn init(port: &i16) {
