@@ -11,6 +11,14 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tracing::{error, info};
 
+#[derive(Deserialize, Serialize)]
+struct MetaStore {
+    file_name: String,
+    hash: String,
+    chunk_id: i32,
+    hosts: Vec<String>
+}
+
 pub async fn init(port: &i16) {
     println!("{}", crate::LOGO);
     info!("launching node in [master] mode on port {}...", port);
