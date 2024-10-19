@@ -113,6 +113,21 @@ async fn list() -> Response {
 #[axum::debug_handler]
 async fn get(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     info!("get file with name [{}]", &payload.name);
+
+    let mut file: Vec<MetaStore> = vec![];
+
+    if let Ok(memory) = METASTATE.lock() {
+        file = memory
+                    .clone()
+                    .into_iter()
+                    .filter(|x| x.file_name == payload.name)
+                    .collect::<Vec<MetaStore>>();
+    }
+
+    if file.len() > 0 {
+        return Json(file).into_response();
+    }
+
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
