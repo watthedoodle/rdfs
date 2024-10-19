@@ -4,7 +4,7 @@ use axum::extract;
 use axum::extract::ConnectInfo;
 use axum::http::StatusCode;
 use axum::middleware;
-use axum::response::{IntoResponse, Response};
+use axum::response::{IntoResponse, Json, Response};
 use axum::routing::post;
 use axum::Router;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Mutex;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct MetaStore {
@@ -103,6 +103,10 @@ async fn list() -> Response {
             .to_vec();
     }
 
+    if files.len() > 0 {
+        return Json(files).into_response();
+    }
+
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
@@ -124,6 +128,7 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
+#[allow(dead_code)]
 fn create_dummy_snapshot() {
     info!("generating dummy snapshot data...");
 
