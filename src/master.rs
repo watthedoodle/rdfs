@@ -140,7 +140,41 @@ async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
 #[axum::debug_handler]
 async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     info!("remove file with name [{}]", &payload.name);
+
+    let mut kill_list: Vec<MetaStore> = vec![];
+
+    if let Ok(memory) = METASTATE.lock() {
+        kill_list = memory
+            .clone()
+            .into_iter()
+            .filter(|x| x.file_name == payload.name)
+            .collect::<Vec<_>>()
+            .to_vec();
+    }
+
+    if kill_list.len() > 0 {
+        for chunk in kill_list {
+            for worker in chunk.hosts {
+                let chunk_id = format!("{}-{}", chunk.chunk_id, chunk.hash);
+                self::delete_remote_chunk(chunk_id, worker.ip);
+            }
+        }
+    }
+
+    if let Ok(mut memory) = METASTATE.lock() {
+        memory.retain(|x| x.file_name != payload.name)
+    }
+
+    // todo: we need to add this file name to some kind of kill list or "prune list"
+    // that we can use to pre-process the snapshot on load so that any chunks on the prune list
+    // is ignored and not loaded up into memory (e.g dropped from the snapshot)
+
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
+}
+
+fn delete_remote_chunk(chunk_id: String, remote_ip: String) {
+    // TOOD
+    info!("todo")
 }
 
 #[allow(dead_code)]
