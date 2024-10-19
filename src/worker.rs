@@ -127,6 +127,7 @@ async fn send_chunk(
             id: payload.id.clone(),
             chunk: BASE64_STANDARD.encode(chunk),
         };
+        // NOTE: we may need to move this i/o call into it's own thread via spawn_blocking
         match ureq::post(&format!("{}/store-chunk", payload.target))
             .set("x-rdfs-token", &state.token)
             .send_json(data)
