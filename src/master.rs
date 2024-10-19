@@ -8,12 +8,15 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::Router;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Mutex;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 struct MetaStore {
     file_name: String,
     hash: String,
@@ -21,14 +24,14 @@ struct MetaStore {
     hosts: Vec<Host>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 enum Status {
     Unknown,
     Healthy,
     Dead,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 struct Host {
     ip: String,
     status: Status,
@@ -104,6 +107,63 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
+fn create_dummy_snapshot() {
+    info!("generating dummy snapshot data...");
+
+    let a = MetaStore {
+        file_name: String::from("README.md"),
+        hash: String::from("5c9d231c8b6d10f43fd0768ca80755d2"),
+        chunk_id: 1,
+        hosts: vec![
+            Host {
+                ip: String::from("192.168.1.80"),
+                status: Status::Healthy,
+            },
+            Host {
+                ip: String::from("192.168.1.83"),
+                status: Status::Healthy,
+            },
+        ],
+    };
+
+    let b = MetaStore {
+        file_name: String::from("README.md"),
+        hash: String::from("5c9d231c8b6d10f43fd0768ca80755d2"),
+        chunk_id: 2,
+        hosts: vec![
+            Host {
+                ip: String::from("192.168.1.81"),
+                status: Status::Healthy,
+            },
+            Host {
+                ip: String::from("192.168.1.82"),
+                status: Status::Healthy,
+            },
+        ],
+    };
+
+    let c = MetaStore {
+        file_name: String::from("README.md"),
+        hash: String::from("5c9d231c8b6d10f43fd0768ca80755d2"),
+        chunk_id: 3,
+        hosts: vec![
+            Host {
+                ip: String::from("192.168.1.82"),
+                status: Status::Healthy,
+            },
+            Host {
+                ip: String::from("192.168.1.83"),
+                status: Status::Healthy,
+            },
+        ],
+    };
+
+    let mut w = File::create("snapshot").unwrap();
+    writeln!(&mut w, "{}", json!(a)).unwrap();
+    writeln!(&mut w, "{}", json!(b)).unwrap();
+    writeln!(&mut w, "{}", json!(c)).unwrap();
+}
+
 fn load_snapshot() {
     /* ---------------------------------------------------------------------------------------------
     attempt to load from snapshot from disk into memory, we will need to also do
@@ -111,7 +171,20 @@ fn load_snapshot() {
     This will then allow the change events to be appended while the process is running.
     ---------------------------------------------------------------------------------------------- */
     info!("attempting to load snapshot...");
+
+    // self::create_dummy_snapshot();
+
     if Path::new("snapshot").exists() {
         info!("existing snapshot detected!");
+        let snapshot = File::open("snapshot").unwrap();
+        let reader = BufReader::new(snapshot);
+
+        for line in reader.lines() {
+            if let Ok(_line) = line {
+                if let Ok(metastore) = serde_json::from_str::<MetaStore>(&_line) {
+                    warn!("{:?}", metastore);
+                }
+            }
+        }
     }
 }
