@@ -118,10 +118,10 @@ async fn get(extract::Json(payload): extract::Json<FileMeta>) -> Response {
 
     if let Ok(memory) = METASTATE.lock() {
         file = memory
-                    .clone()
-                    .into_iter()
-                    .filter(|x| x.file_name == payload.name)
-                    .collect::<Vec<MetaStore>>();
+            .clone()
+            .into_iter()
+            .filter(|x| x.file_name == payload.name)
+            .collect::<Vec<MetaStore>>();
     }
 
     if file.len() > 0 {
