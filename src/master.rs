@@ -9,7 +9,7 @@ use axum::routing::post;
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
@@ -89,6 +89,20 @@ struct FileMeta {
 #[axum::debug_handler]
 async fn list() -> Response {
     info!("list all files");
+
+    let mut files: Vec<String> = vec![];
+
+    if let Ok(memory) = METASTATE.lock() {
+        files = memory
+            .clone()
+            .into_iter()
+            .map(|x| x.file_name)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .to_vec();
+    }
+
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
