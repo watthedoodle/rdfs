@@ -175,7 +175,7 @@ fn load_snapshot() {
     ---------------------------------------------------------------------------------------------- */
     info!("attempting to load snapshot...");
 
-    self::create_dummy_snapshot();
+    // self::create_dummy_snapshot();
 
     if Path::new("snapshot").exists() {
         info!("existing snapshot detected!");
@@ -201,15 +201,22 @@ fn load_snapshot() {
         }
 
         if let Ok(memory) = METASTATE.lock() {
-            info!("total chunks loaded into memory after compaction: {}", memory.len())
-            // for (e, v) in &*store {
-            //     warn!("{:?} {:?}", e, v);
-            // }
+            info!(
+                "total chunks loaded into memory after compaction: {}",
+                memory.len()
+            )
         }
     }
 }
 
 fn export_compacted_snapshot() {
     info!("attempting to export compacted snapshot...");
-
+    if let Ok(memory) = METASTATE.lock() {
+        let mut w = File::create("snapshot.new").unwrap();
+        for v in &*memory {
+            writeln!(&mut w, "{}", json!(v)).unwrap();
+        }
+    }
+    std::fs::remove_file("snapshot").unwrap();
+    std::fs::rename("snapshot.new", "snapshot").unwrap();
 }
