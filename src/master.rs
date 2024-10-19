@@ -9,6 +9,7 @@ use axum::routing::post;
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
@@ -16,7 +17,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use tracing::{error, info, warn};
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 struct MetaStore {
     file_name: String,
     hash: String,
@@ -24,21 +25,21 @@ struct MetaStore {
     hosts: Vec<Host>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 enum Status {
     Unknown,
     Healthy,
     Dead,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 struct Host {
     ip: String,
     status: Status,
 }
 
 lazy_static! {
-    static ref METASTATE: Mutex<Vec<MetaStore>> = Mutex::new(vec![]);
+    static ref METASTATE: Mutex<HashMap<(String, i32), MetaStore>> = Mutex::new(HashMap::new());
 }
 
 pub async fn init(port: &i16) {
@@ -46,6 +47,8 @@ pub async fn init(port: &i16) {
 
     if let Some(config) = config::get() {
         self::load_snapshot();
+        self::export_compacted_snapshot();
+        
         info!("launching node in [master] mode on port {}...", port);
 
         let app = Router::new()
@@ -145,14 +148,14 @@ fn create_dummy_snapshot() {
     let c = MetaStore {
         file_name: String::from("README.md"),
         hash: String::from("5c9d231c8b6d10f43fd0768ca80755d2"),
-        chunk_id: 3,
+        chunk_id: 2,
         hosts: vec![
             Host {
                 ip: String::from("192.168.1.82"),
                 status: Status::Healthy,
             },
             Host {
-                ip: String::from("192.168.1.83"),
+                ip: String::from("192.168.1.255"),
                 status: Status::Healthy,
             },
         ],
@@ -172,19 +175,36 @@ fn load_snapshot() {
     ---------------------------------------------------------------------------------------------- */
     info!("attempting to load snapshot...");
 
-    // self::create_dummy_snapshot();
+    self::create_dummy_snapshot();
 
     if Path::new("snapshot").exists() {
         info!("existing snapshot detected!");
         let snapshot = File::open("snapshot").unwrap();
         let reader = BufReader::new(snapshot);
 
-        for line in reader.lines() {
-            if let Ok(_line) = line {
-                if let Ok(metastore) = serde_json::from_str::<MetaStore>(&_line) {
-                    warn!("{:?}", metastore);
+        if let Ok(mut memory) = METASTATE.lock() {
+            for line in reader.lines() {
+                if let Ok(_line) = line {
+                    if let Ok(disk) = serde_json::from_str::<MetaStore>(&_line) {
+                        memory
+                            .entry((disk.hash.to_string(), disk.chunk_id))
+                            .and_modify(|x| *x = disk.clone())
+                            .or_insert(disk);
+                    }
                 }
             }
         }
+
+        if let Ok(store) = METASTATE.lock() {
+            info!("total chunks loaded into memory after compaction: {}", store.len())
+            // for (e, v) in &*store {
+            //     warn!("{:?} {:?}", e, v);
+            // }
+        }
     }
+}
+
+fn export_compacted_snapshot() {
+    info!("attempting to export compacted snapshot...");
+
 }
