@@ -39,7 +39,7 @@ struct Host {
 }
 
 lazy_static! {
-    static ref METASTATE: Mutex<HashMap<(String, i32), MetaStore>> = Mutex::new(HashMap::new());
+    static ref METASTATE: Mutex<Vec<MetaStore>> = Mutex::new(vec![]);
 }
 
 pub async fn init(port: &i16) {
@@ -48,7 +48,7 @@ pub async fn init(port: &i16) {
     if let Some(config) = config::get() {
         self::load_snapshot();
         self::export_compacted_snapshot();
-        
+
         info!("launching node in [master] mode on port {}...", port);
 
         let app = Router::new()
@@ -182,21 +182,26 @@ fn load_snapshot() {
         let snapshot = File::open("snapshot").unwrap();
         let reader = BufReader::new(snapshot);
 
+        let mut compactor: HashMap<(String, i32), MetaStore> = HashMap::new();
+
         if let Ok(mut memory) = METASTATE.lock() {
             for line in reader.lines() {
                 if let Ok(_line) = line {
                     if let Ok(disk) = serde_json::from_str::<MetaStore>(&_line) {
-                        memory
+                        compactor
                             .entry((disk.hash.to_string(), disk.chunk_id))
                             .and_modify(|x| *x = disk.clone())
                             .or_insert(disk);
                     }
                 }
             }
+            for (_, v) in compactor {
+                memory.push(v);
+            }
         }
 
-        if let Ok(store) = METASTATE.lock() {
-            info!("total chunks loaded into memory after compaction: {}", store.len())
+        if let Ok(memory) = METASTATE.lock() {
+            info!("total chunks loaded into memory after compaction: {}", memory.len())
             // for (e, v) in &*store {
             //     warn!("{:?} {:?}", e, v);
             // }
