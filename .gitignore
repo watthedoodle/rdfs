@@ -2,4 +2,5 @@
 test.txt
 sandbox/
 snapshot
-snapshot.new
+prune
+*.new

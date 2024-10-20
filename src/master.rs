@@ -10,12 +10,12 @@ use axum::Router;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
+use std::fs::{ File, OpenOptions };
 use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Mutex;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct MetaStore {
@@ -287,4 +287,12 @@ fn export_compacted_snapshot() {
     }
     std::fs::remove_file("snapshot").unwrap();
     std::fs::rename("snapshot.new", "snapshot").unwrap();
+}
+
+fn append(f: &str, d: &str) {
+    let mut h = OpenOptions::new().write(true).append(true).open(f).unwrap();
+
+    if let Err(e) = writeln!(h, "{}", d) {
+        warn!("unable to append to file: {}", e);
+    }
 }
