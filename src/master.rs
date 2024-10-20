@@ -10,7 +10,7 @@ use axum::Router;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::fs::{ File, OpenOptions };
+use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::net::SocketAddr;
 use std::path::Path;
@@ -47,7 +47,7 @@ pub async fn init(port: &i16) {
 
     if let Some(config) = config::get() {
         self::load_snapshot();
-        self::export_compacted_snapshot();
+        let _ = self::export_compacted_snapshot();
 
         info!("launching node in [master] mode on port {}...", port);
 
@@ -158,7 +158,7 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
         for chunk in kill_list {
             for worker in chunk.hosts {
                 let chunk_id = format!("{}-{}", chunk.chunk_id, chunk.hash);
-                kill_hash =chunk.hash.to_string();
+                kill_hash = chunk.hash.to_string();
                 self::delete_remote_chunk(chunk_id, worker.ip);
             }
         }
@@ -246,6 +246,12 @@ fn load_snapshot() {
 
     // self::create_dummy_snapshot();
 
+    let mut prune = Vec::new();
+
+    if let Ok(v) = self::read_lines("prune") {
+        prune = v;
+    }
+
     if Path::new("snapshot").exists() {
         info!("existing snapshot detected!");
         let snapshot = File::open("snapshot").unwrap();
@@ -257,10 +263,12 @@ fn load_snapshot() {
             for line in reader.lines() {
                 if let Ok(_line) = line {
                     if let Ok(disk) = serde_json::from_str::<MetaStore>(&_line) {
-                        compactor
-                            .entry((disk.hash.to_string(), disk.chunk_id))
-                            .and_modify(|x| *x = disk.clone())
-                            .or_insert(disk);
+                        if !prune.contains(&disk.hash) {
+                            compactor
+                                .entry((disk.hash.to_string(), disk.chunk_id))
+                                .and_modify(|x| *x = disk.clone())
+                                .or_insert(disk);
+                        }
                     }
                 }
             }
@@ -278,16 +286,20 @@ fn load_snapshot() {
     }
 }
 
-fn export_compacted_snapshot() {
+fn export_compacted_snapshot() -> Result<(), std::io::Error> {
     info!("attempting to export compacted snapshot...");
+    // FIX: we're ignoring any errors, at some point we need to consider
+    // handling them
     if let Ok(memory) = METASTATE.lock() {
-        let mut w = File::create("snapshot.new").unwrap();
+        let mut w = File::create("snapshot.new")?;
         for v in &*memory {
-            writeln!(&mut w, "{}", json!(v)).unwrap();
+            writeln!(&mut w, "{}", json!(v))?;
         }
     }
-    std::fs::remove_file("snapshot").unwrap();
-    std::fs::rename("snapshot.new", "snapshot").unwrap();
+    std::fs::remove_file("snapshot")?;
+    std::fs::rename("snapshot.new", "snapshot")?;
+    std::fs::remove_file("prune")?;
+    Ok(())
 }
 
 fn append(f: &str, d: &str) {
@@ -296,4 +308,16 @@ fn append(f: &str, d: &str) {
     if let Err(e) = writeln!(h, "{}", d) {
         warn!("unable to append to file: {}", e);
     }
+}
+
+fn read_lines(p: &str) -> Result<Vec<String>, std::io::Error> {
+    let f = File::open(p)?;
+    let r = BufReader::new(f);
+    let mut v = Vec::new();
+    for l in r.lines() {
+        if let Ok(l) = l {
+            v.push(l);
+        }
+    }
+    Ok(v)
 }
