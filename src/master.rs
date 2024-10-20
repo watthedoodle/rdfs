@@ -152,10 +152,13 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
             .to_vec();
     }
 
+    let mut kill_hash = String::new();
+
     if kill_list.len() > 0 {
         for chunk in kill_list {
             for worker in chunk.hosts {
                 let chunk_id = format!("{}-{}", chunk.chunk_id, chunk.hash);
+                kill_hash =chunk.hash.to_string();
                 self::delete_remote_chunk(chunk_id, worker.ip);
             }
         }
@@ -165,9 +168,7 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
         memory.retain(|x| x.file_name != payload.name)
     }
 
-    // todo: we need to add this file name to some kind of kill list or "prune list"
-    // that we can use to pre-process the snapshot on load so that any chunks on the prune list
-    // is ignored and not loaded up into memory (e.g dropped from the snapshot)
+    self::append("prune", &kill_hash);
 
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
