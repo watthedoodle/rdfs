@@ -145,6 +145,48 @@ async fn get(extract::Json(payload): extract::Json<FileMeta>) -> Response {
 #[axum::debug_handler]
 async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     info!("upload file with name [{}]", &payload.name);
+
+    /* ---------------------------------------------------------------------------------------------
+    so this is the one of most complex part of the master node (the other would be re-balancing),
+    here we need to take the total size of the file and split into 64kb chunks (we don't actually
+    do the splitting here, just dealing with the meta information about the splitting.)
+
+    then for each chunk we need to randomly allocate worker node(s) such that the replication factor
+    is satisfied.
+
+    We would then send back that entire meta information so that the client can then go ahead and
+    split up the file and then send each chunk to all the various different worker nodes.
+
+    We need to make sure that the selected worker nodes are "alive" based on the timestamped heart
+    beat. For this we can use something like a defined upper "threshold" timeout limit, e.g 5
+    minutes.
+
+    of course this strategy is not robust and certainly NOT production grade, because there could be
+    so many issues, for example the main one being that once the client gets the meta data back
+    some of the worker nodes may fail to receive the file chunks, in this case we don't currently
+    have any "fallback" way to retry.
+
+    At the moment if the same file is called to be "uploaded" (with a "force" flag) it could simply
+    re-calculate chunk distribution across random worker nodes, that itself is fine in terms of a
+    retry mechanism, however it would mean we have the potential for ending up with "orhpaned"
+    chunks, we don't care about "overlaping" chunks as that would simply overwrite existing chunks
+    so no issues there.
+
+    We may need to consider that "re-calculation" to be something abnormal, and only when the client
+    fails to upload to worker nodes, so it maybe a good idea that under normal cases we simply check
+    the metastore to see if we already have this file uploaded and return that if that is the case
+    so that it's an "immutable" call. However we could potentially include an optional "force" flag
+    in the payload which the client would only use in cases of retries/failures, in which case we
+    skip any existing uploaded files and just re-calculate (we may need to issue a remove file first)
+
+    These "orphaned" chunks would be chunks that exist on a worker node, but technically without any
+    reference in the main master metastore. Over time these would take up waste disk space.
+
+    One way to fix this could be to have some kind of "garbage" collection on the work nodes that
+    would need the worker nodes to be able to identify that they have chunks that shouldn't exist,
+    this could happen slowly when idle as it's not super important.
+    --------------------------------------------------------------------------------------------- */
+
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
