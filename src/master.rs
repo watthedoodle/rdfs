@@ -79,6 +79,15 @@ pub async fn init(port: &i16) {
 
 async fn heartbeat(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
     info!("got a heartbeat from worker node -> ...{}", addr);
+
+    if let Ok(mut heartbeat) = HEARTBEAT.lock() {
+        let ts = chrono::Utc::now();
+        heartbeat
+            .entry(addr.ip().to_string())
+            .and_modify(|x| *x = ts)
+            .or_insert(ts);
+    }
+
     "ok".to_string()
 }
 
