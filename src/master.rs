@@ -7,6 +7,7 @@ use axum::middleware;
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::post;
 use axum::Router;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -40,6 +41,7 @@ struct Host {
 
 lazy_static! {
     static ref METASTATE: Mutex<Vec<MetaStore>> = Mutex::new(vec![]);
+    static ref HEARTBEAT: Mutex<HashMap<String, DateTime<Utc>>> = Mutex::new(HashMap::new());
 }
 
 pub async fn init(port: &i16) {
