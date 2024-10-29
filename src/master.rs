@@ -10,6 +10,7 @@ use axum::response::{IntoResponse, Json, Response};
 use axum::routing::post;
 use axum::Router;
 use chrono::{DateTime, Utc};
+use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -19,6 +20,10 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Mutex;
 use tracing::{error, info, warn};
+
+const FILE_CHUNK_SIZE: u64 = 512;
+const TIMEOUT_IN_MINUTES: i64 = 5;
+const REPLICATION_FACTOR: usize = 3;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct MetaStore {
@@ -96,7 +101,13 @@ async fn heartbeat(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
 #[derive(Deserialize, Serialize)]
 struct FileMeta {
     name: String,
-    size: Option<u64>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct FileUploadMeta {
+    name: String,
+    hash: String,
+    size: u64,
 }
 
 #[axum::debug_handler]
@@ -145,12 +156,14 @@ async fn get(extract::Json(payload): extract::Json<FileMeta>) -> Response {
 }
 
 #[axum::debug_handler]
-async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
+async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Response {
     info!("upload file with name [{}]", &payload.name);
 
     /* ---------------------------------------------------------------------------------------------
+    **CAUTION:**
+    
     so this is the one of most complex part of the master node (the other would be re-balancing),
-    here we need to take the total size of the file and split into 64kb chunks (we don't actually
+    here we need to take the total size of the file and split into 512kb chunks (we don't actually
     do the splitting here, just dealing with the meta information about the splitting.)
 
     then for each chunk we need to randomly allocate worker node(s) such that the replication factor
@@ -188,6 +201,49 @@ async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     would need the worker nodes to be able to identify that they have chunks that shouldn't exist,
     this could happen slowly when idle as it's not super important.
     --------------------------------------------------------------------------------------------- */
+
+    let mut worker_nodes: Vec<String> = Vec::new();
+    let mut heartbeats = HashMap::new();
+    let now = chrono::Utc::now();
+
+    if let Ok(x) = HEARTBEAT.lock() {
+        heartbeats = x.clone();
+    }
+
+    worker_nodes = heartbeats
+        .into_iter()
+        .filter(|v| (now - v.1).num_minutes() <= TIMEOUT_IN_MINUTES)
+        .map(|v| v.0)
+        .collect();
+
+    if worker_nodes.len() >= REPLICATION_FACTOR {
+        let chunks = payload.size / FILE_CHUNK_SIZE;
+        let mut metastore: Vec<MetaStore> = Vec::new();
+
+        for chunk in 1..chunks {
+            // randomly pick X worker nodes
+            let hosts: Vec<Host> = worker_nodes
+                .choose_multiple(&mut rand::thread_rng(), 3)
+                .map(|x| Host {
+                    ip: x.to_string(),
+                    status: Status::Healthy,
+                })
+                .collect();
+
+            metastore.push(MetaStore {
+                file_name: payload.name.to_string(),
+                hash: payload.hash.to_string(),
+                chunk_id: chunk as i32,
+                hosts: hosts,
+            });
+        }
+
+        return Json(metastore).into_response();
+    }
+
+    if worker_nodes.len() < REPLICATION_FACTOR {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    }
 
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
