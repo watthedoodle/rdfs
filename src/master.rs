@@ -1,7 +1,9 @@
 use crate::auth;
 use crate::config;
+use crate::config::Config;
+use crate::worker::MetaChunk;
 use axum::extract;
-use axum::extract::ConnectInfo;
+use axum::extract::{ConnectInfo, State};
 use axum::http::StatusCode;
 use axum::middleware;
 use axum::response::{IntoResponse, Json, Response};
@@ -191,7 +193,10 @@ async fn upload(extract::Json(payload): extract::Json<FileMeta>) -> Response {
 }
 
 #[axum::debug_handler]
-async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
+async fn remove(
+    State(state): State<Config>,
+    extract::Json(payload): extract::Json<FileMeta>,
+) -> Response {
     info!("remove file with name [{}]", &payload.name);
 
     let mut kill_list: Vec<MetaStore> = vec![];
@@ -212,7 +217,7 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
             for worker in chunk.hosts {
                 let chunk_id = format!("{}-{}", chunk.chunk_id, chunk.hash);
                 kill_hash = chunk.hash.to_string();
-                self::delete_remote_chunk(chunk_id, worker.ip);
+                self::delete_remote_chunk(chunk_id, worker.ip, &state.token);
             }
         }
     }
@@ -226,9 +231,19 @@ async fn remove(extract::Json(payload): extract::Json<FileMeta>) -> Response {
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
-fn delete_remote_chunk(chunk_id: String, remote_ip: String) {
-    // TOOD
-    info!("todo")
+fn delete_remote_chunk(chunk_id: String, remote_ip: String, token: &str) {
+    let data = MetaChunk {
+        id: chunk_id.clone(),
+    };
+
+    if let Ok(_) = ureq::post(&format!("http://{}:8888/delete-chunk", remote_ip))
+        .set("x-rdfs-token", token)
+        .send_json(data)
+    {
+        info!("remote chunk deleted ({})", &chunk_id);
+    } else {
+        warn!("ERROR: unable to delete remote chunk ({})", &chunk_id);
+    }
 }
 
 #[allow(dead_code)]

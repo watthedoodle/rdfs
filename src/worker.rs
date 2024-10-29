@@ -44,8 +44,8 @@ pub async fn init(port: &i16) {
 }
 
 #[derive(Deserialize, Serialize)]
-struct MetaChunk {
-    id: String,
+pub struct MetaChunk {
+    pub id: String,
 }
 
 #[derive(Deserialize, Serialize)]
