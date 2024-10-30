@@ -161,7 +161,7 @@ async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Respon
 
     /* ---------------------------------------------------------------------------------------------
     **CAUTION:**
-    
+
     so this is the one of most complex part of the master node (the other would be re-balancing),
     here we need to take the total size of the file and split into 512kb chunks (we don't actually
     do the splitting here, just dealing with the meta information about the splitting.)
@@ -273,7 +273,11 @@ async fn remove(
             for worker in chunk.hosts {
                 let chunk_id = format!("{}-{}", chunk.chunk_id, chunk.hash);
                 kill_hash = chunk.hash.to_string();
-                self::delete_remote_chunk(chunk_id, worker.ip, &state.token);
+                let token = state.token.to_string();
+                let _ = tokio::task::spawn_blocking(move || {
+                    self::delete_remote_chunk(chunk_id, worker.ip, &token)
+                })
+                .await;
             }
         }
     }
