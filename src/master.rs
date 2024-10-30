@@ -220,6 +220,24 @@ async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Respon
         let chunks = payload.size / FILE_CHUNK_SIZE;
         let mut metastore: Vec<MetaStore> = Vec::new();
 
+        // when file is less than 512kb
+        if chunks == 0 {
+            let hosts: Vec<Host> = worker_nodes
+                .choose_multiple(&mut rand::thread_rng(), 3)
+                .map(|x| Host {
+                    ip: x.to_string(),
+                    status: Status::Healthy,
+                })
+                .collect();
+
+            metastore.push(MetaStore {
+                file_name: payload.name.to_string(),
+                hash: payload.hash.to_string(),
+                chunk_id: 1,
+                hosts: hosts,
+            });
+        }
+
         for chunk in 1..chunks {
             // randomly pick X worker nodes
             let hosts: Vec<Host> = worker_nodes
