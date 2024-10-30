@@ -238,6 +238,10 @@ async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Respon
             });
         }
 
+        for line in metastore.iter() {
+            self::append("snapshot", &format!("{}", json!(line)));
+        }
+
         return Json(metastore).into_response();
     }
 
