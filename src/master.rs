@@ -35,9 +35,8 @@ struct MetaStore {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 enum Status {
-    Unknown,
-    Healthy,
-    Dead,
+    Dirty,
+    Synced,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -200,6 +199,16 @@ async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Respon
     One way to fix this could be to have some kind of "garbage" collection on the work nodes that
     would need the worker nodes to be able to identify that they have chunks that shouldn't exist,
     this could happen slowly when idle as it's not super important.
+
+    Note (May 2025):
+        The "Status" has been changed from "Unknown, Healthy, Dead" over to "Dirty, Synced", this
+        makes much more sense, and we can use this status flag to track if a worker node has actually
+        got a specific file chunk written to disk and not just the overal status of a worker node.
+        When we "upload" a file, we only plan the chunk placement, hence at that point the chunks
+        are "dirty" as in planned but not actually written to disk.
+        When a chunck is written to disk, the worker node will need to send a chunk "Sync" over to
+        the master, that can then update the internal meta store. This will require a new endpoint
+        handler as well as changes to the snapshot reloading mechanism.
     --------------------------------------------------------------------------------------------- */
 
     let mut worker_nodes: Vec<String> = Vec::new();
@@ -226,7 +235,7 @@ async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Respon
                 .choose_multiple(&mut rand::thread_rng(), 3)
                 .map(|x| Host {
                     ip: x.to_string(),
-                    status: Status::Healthy,
+                    status: Status::Dirty,
                 })
                 .collect();
 
@@ -244,7 +253,7 @@ async fn upload(extract::Json(payload): extract::Json<FileUploadMeta>) -> Respon
                 .choose_multiple(&mut rand::thread_rng(), 3)
                 .map(|x| Host {
                     ip: x.to_string(),
-                    status: Status::Healthy,
+                    status: Status::Dirty,
                 })
                 .collect();
 
@@ -339,11 +348,11 @@ fn create_dummy_snapshot() {
         hosts: vec![
             Host {
                 ip: String::from("192.168.1.80"),
-                status: Status::Healthy,
+                status: Status::Dirty,
             },
             Host {
                 ip: String::from("192.168.1.83"),
-                status: Status::Healthy,
+                status: Status::Dirty,
             },
         ],
     };
@@ -355,11 +364,11 @@ fn create_dummy_snapshot() {
         hosts: vec![
             Host {
                 ip: String::from("192.168.1.81"),
-                status: Status::Healthy,
+                status: Status::Dirty,
             },
             Host {
                 ip: String::from("192.168.1.82"),
-                status: Status::Healthy,
+                status: Status::Dirty,
             },
         ],
     };
@@ -371,11 +380,11 @@ fn create_dummy_snapshot() {
         hosts: vec![
             Host {
                 ip: String::from("192.168.1.82"),
-                status: Status::Healthy,
+                status: Status::Dirty,
             },
             Host {
                 ip: String::from("192.168.1.255"),
-                status: Status::Healthy,
+                status: Status::Dirty,
             },
         ],
     };
