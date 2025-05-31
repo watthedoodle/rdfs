@@ -65,6 +65,7 @@ pub async fn init(port: &i16) {
             .route("/get", post(get))
             .route("/upload", post(upload))
             .route("/remove", post(remove))
+            .route("/sync", post(sync))
             .route_layer(middleware::from_fn(auth::authorise))
             .with_state(config.clone());
 
@@ -93,6 +94,15 @@ async fn heartbeat(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
             .and_modify(|x| *x = ts)
             .or_insert(ts);
     }
+
+    "ok".to_string()
+}
+
+async fn sync(ConnectInfo(addr): ConnectInfo<SocketAddr>, extract::Json(payload): extract::Json<ChunkSyncMeta>) -> String {
+    info!("got a chunk sync from worker node -> ...{}", addr);
+
+    // TODO: find the specific chunk and update the Status from Dirty to Synced 
+
 
     "ok".to_string()
 }
