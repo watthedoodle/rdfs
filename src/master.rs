@@ -109,6 +109,12 @@ struct FileUploadMeta {
     size: u64,
 }
 
+#[derive(Deserialize, Serialize)]
+struct ChunkSyncMeta {
+    hash: String,
+    chunk_id: i32
+}
+
 #[axum::debug_handler]
 async fn list() -> Response {
     info!("list all files");
